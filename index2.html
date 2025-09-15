@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antwen - GTA百科与工具集</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0a0e2e 0%, #1a1a2e 25%, #16213e 50%, #0f4c75 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* 背景动画 */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(255, 61, 113, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 242, 254, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(255, 195, 0, 0.1) 0%, transparent 50%);
+            animation: bgMove 20s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes bgMove {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+
+        /* 导航栏 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(10, 14, 46, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            border-bottom: 2px solid rgba(255, 61, 113, 0.3);
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff3d71, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(255, 61, 113, 0.5);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            color: #ffffff;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link:hover {
+            background: linear-gradient(45deg, #ff3d71, #00f2fe);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 61, 113, 0.4);
+        }
+
+        /* 主要内容 */
+        .main-content {
+            margin-top: 80px;
+            padding: 2rem;
+        }
+
+        /* 英雄区域 */
+        .hero {
+            text-align: center;
+            padding: 4rem 0;
+            background: linear-gradient(135deg, rgba(255, 61, 113, 0.1), rgba(0, 242, 254, 0.1));
+            border-radius: 20px;
+            margin-bottom: 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shine 4s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #ff3d71, #00f2fe, #ffc300);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 20px rgba(255, 61, 113, 0.5); }
+            to { text-shadow: 0 0 30px rgba(0, 242, 254, 0.8); }
+        }
+
+        .hero p {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        /* 项目网格 */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .project-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .project-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 61, 113, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .project-card:hover::before {
+            left: 100%;
+        }
+
+        .project-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 15px 30px rgba(255, 61, 113, 0.3);
+            border-color: #ff3d71;
+        }
+
+        .project-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(45deg, #ff3d71, #00f2fe);
+            border-radius: 15px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .project-image img {
+            width: 80%;
+            height: 80%;
+            object-fit: cover;
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .project-card:hover .project-image img {
+            transform: scale(1.1);
+        }
+
+        .project-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #ff3d71, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .project-description {
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            opacity: 0.9;
+        }
+
+        .project-link {
+            display: inline-block;
+            padding: 0.8rem 2rem;
+            background: linear-gradient(45deg, #ff3d71, #00f2fe);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .project-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 61, 113, 0.4);
+        }
+
+        /* 工具部分 */
+        .tools-section {
+            margin-top: 4rem;
+            text-align: center;
+        }
+
+        .section-title {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            background: linear-gradient(45deg, #ffc300, #ff3d71);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .tool-card {
+            background: linear-gradient(135deg, rgba(255, 195, 0, 0.1), rgba(255, 61, 113, 0.1));
+            border-radius: 15px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 195, 0, 0.3);
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(255, 195, 0, 0.3);
+        }
+
+        .tool-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #ffc300;
+        }
+
+        .tool-description {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero p {
+                font-size: 1.2rem;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .projects-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, #ff3d71, #00f2fe);
+            border-radius: 4px;
+        }
+
+        /* 动画延迟 */
+        .project-card:nth-child(1) { animation-delay: 0.1s; }
+        .project-card:nth-child(2) { animation-delay: 0.2s; }
+        .project-card:nth-child(3) { animation-delay: 0.3s; }
+        .project-card:nth-child(4) { animation-delay: 0.4s; }
+        .project-card:nth-child(5) { animation-delay: 0.5s; }
+        .project-card:nth-child(6) { animation-delay: 0.6s; }
+
+        .fade-in {
+            animation: fadeInUp 0.8s ease forwards;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景动画 -->
+    <div class="bg-animation"></div>
+
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">ANTWEN</div>
+            <div class="nav-links">
+                <a href="#projects" class="nav-link">项目</a>
+                <a href="#tools" class="nav-link">工具</a>
+                <a href="#contact" class="nav-link">联系</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <main class="main-content">
+        <!-- 英雄区域 -->
+        <section class="hero">
+            <h1>欢迎来到我的数字王国</h1>
+            <p>探索GTA世界的终极指南与强大工具集</p>
+        </section>
+
+        <!-- 项目展示 -->
+        <section id="projects">
+            <div class="projects-grid">
+                <!-- GTA百科项目 -->
+                <div class="project-card fade-in">
+                    <div class="project-image">
+                        <img src="imgs/test.png" alt="GTA百科">
+                    </div>
+                    <h3 class="project-title">🏙️ GTA百科</h3>
+                    <p class="project-description">
+                        完整的GTA世界指南，包含洛圣都地图、佩里科岛详细信息和车辆数据库。为玩家提供最全面的游戏资源。
+                    </p>
+                    <a href="https://v.antwen.com" class="project-link" target="_blank">探索世界</a>
+                </div>
+
+                <!-- 洛圣都地图 -->
+                <div class="project-card fade-in">
+                    <div class="project-image">
+                        <img src="imgs/test.png" alt="洛圣都地图">
+                    </div>
+                    <h3 class="project-title">🗺️ 洛圣都地图</h3>
+                    <p class="project-description">
+                        交互式洛圣都地图，包含所有重要位置、任务点和隐藏物品。三种地图样式可选。
+                    </p>
+                    <a href="https://v.antwen.com/los-santos-map" class="project-link" target="_blank">查看地图</a>
+                </div>
+
+                <!-- 佩里科岛地图 -->
+                <div class="project-card fade-in">
+                    <div class="project-image">
+                        <img src="imgs/test.png" alt="佩里科岛地图">
+                    </div>
+                    <h3 class="project-title">🏝️ 佩里科岛地图</h3>
+                    <p class="project-description">
+                        佩里科岛抢劫任务专用地图，显示所有入侵点、逃离点、次要目标和收藏品位置。
+                    </p>
+                    <a href="https://v.antwen.com/cayo-perico-map" class="project-link" target="_blank">规划抢劫</a>
+                </div>
+
+                <!-- 车辆数据库 -->
+                <div class="project-card fade-in">
+                    <div class="project-image">
+                        <img src="imgs/test.png" alt="车辆数据库">
+                    </div>
+                    <h3 class="project-title">🚗 车辆百科</h3>
+                    <p class="project-description">
+                        全面的GTA车辆数据库，包含详细的性能数据、价格信息和获取方式。
+                    </p>
+                    <a href="https://v.antwen.com/vehicles" class="project-link" target="_blank">浏览车辆</a>
+                </div>
+
+                <!-- 个人博客 -->
+                <div class="project-card fade-in">
+                    <div class="project-image">
+                        <img src="imgs/test.png" alt="个人博客">
+                    </div>
+                    <h3 class="project-title">📝 个人博客</h3>
+                    <p class="project-description">
+                        分享技术见解、游戏心得和生活感悟的个人空间。记录成长轨迹和思考过程。
+                    </p>
+                    <a href="https://i.antwen.com" class="project-link" target="_blank">阅读博客</a>
+                </div>
+
+                <!-- 个人网盘 -->
+                <div class="project-card fade-in">
+                    <div class="project-image">
+                        <img src="imgs/test.png" alt="个人网盘">
+                    </div>
+                    <h3 class="project-title">☁️ 云端存储</h3>
+                    <p class="project-description">
+                        安全可靠的个人云存储服务，随时随地访问您的文件，支持多种文件格式。
+                    </p>
+                    <a href="https://s.antwen.com" class="project-link" target="_blank">访问网盘</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 工具集合 -->
+        <section id="tools" class="tools-section">
+            <h2 class="section-title">🛠️ 强大工具集</h2>
+            <div class="tools-grid">
+                <div class="tool-card fade-in">
+                    <h4 class="tool-title">JSON 格式化</h4>
+                    <p class="tool-description">强大的JSON数据格式化和验证工具</p>
+                </div>
+                <div class="tool-card fade-in">
+                    <h4 class="tool-title">WebP 转换</h4>
+                    <p class="tool-description">高效的图像格式转换器</p>
+                </div>
+                <div class="tool-card fade-in">
+                    <h4 class="tool-title">MD5 加密</h4>
+                    <p class="tool-description">安全的数据加密和验证工具</p>
+                </div>
+                <div class="tool-card fade-in">
+                    <h4 class="tool-title">SVG 优化</h4>
+                    <p class="tool-description">矢量图形处理和优化工具</p>
+                </div>
+                <div class="tool-card fade-in">
+                    <h4 class="tool-title">短链接服务</h4>
+                    <p class="tool-description">
+                        <a href="https://url.antwen.com" target="_blank" style="color: #ffc300;">url.antwen.com</a>
+                        - 简洁易用的URL缩短服务
+                    </p>
+                </div>
+                <div class="tool-card fade-in">
+                    <h4 class="tool-title">图床服务</h4>
+                    <p class="tool-description">
+                        <a href="https://ib.antwen.com" target="_blank" style="color: #ffc300;">ib.antwen.com</a>
+                        - 稳定快速的图片托管服务
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // 滚动动画
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animationPlayState = 'running';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in').forEach(el => {
+            observer.observe(el);
+        });
+
+        // 项目卡片点击效果
+        document.querySelectorAll('.project-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                if (!e.target.classList.contains('project-link')) {
+                    const link = this.querySelector('.project-link');
+                    if (link) {
+                        window.open(link.href, '_blank');
+                    }
+                }
+            });
+        });
+
+        // 工具卡片点击效果
+        document.querySelectorAll('.tool-card').forEach((card, index) => {
+            const tools = ['json.html', 'webp.html', 'md5.html', 'svg.html'];
+            if (index < tools.length) {
+                card.addEventListener('click', function() {
+                    window.location.href = tools[index];
+                });
+                card.style.cursor = 'pointer';
+            }
+        });
+
+        // 导航栏滚动效果
+        window.addEventListener('scroll', () => {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 50) {
+                navbar.style.background = 'rgba(10, 14, 46, 0.98)';
+            } else {
+                navbar.style.background = 'rgba(10, 14, 46, 0.95)';
+            }
+        });
+
+        // 鼠标跟随光标效果
+        document.addEventListener('mousemove', (e) => {
+            const cursor = document.querySelector('.cursor-glow');
+            if (!cursor) {
+                const glowElement = document.createElement('div');
+                glowElement.className = 'cursor-glow';
+                glowElement.style.cssText = `
+                    position: fixed;
+                    width: 20px;
+                    height: 20px;
+                    background: radial-gradient(circle, rgba(255,61,113,0.3) 0%, transparent 70%);
+                    border-radius: 50%;
+                    pointer-events: none;
+                    z-index: 9999;
+                    transition: transform 0.1s ease;
+                `;
+                document.body.appendChild(glowElement);
+            }
+            
+            const glowElement = document.querySelector('.cursor-glow');
+            glowElement.style.left = (e.clientX - 10) + 'px';
+            glowElement.style.top = (e.clientY - 10) + 'px';
+        });
+    </script>
+</body>
+</html>
