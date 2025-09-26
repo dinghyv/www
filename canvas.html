@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交互式画布面板</title>
+    <!-- 引入Tailwind CSS以进行快速样式设计 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Inter字体 -->
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <style>
+        /* 自定义样式以确保画布正常工作 */
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* 防止在画布上绘图时滚动页面 */
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+        }
+        body {
+            background-color: #f0f2f5; /* 设置一个背景色，以突出面板 */
+        }
+        /* 使画布在父容器中响应式调整大小 */
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none; /* 禁用触摸事件的默认行为，如滚动 */
+        }
+        .canvas-panel {
+            /* 定义面板的初始大小和最大尺寸 */
+            width: 90vw;
+            height: 85vh;
+            max-width: 1200px;
+            max-height: 800px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 flex items-center justify-center min-h-screen">
+
+    <!-- 画布面板容器 -->
+    <div id="canvas-container" class="canvas-panel bg-white dark:bg-gray-800 rounded-xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700">
+        <!-- 顶部工具栏 -->
+        <div class="controls p-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center gap-4">
+                <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 hidden sm:block">绘图板</h2>
+                
+                <!-- 颜色选择器 -->
+                <div class="flex items-center gap-2">
+                    <label for="colorPicker" class="text-sm font-medium text-gray-600 dark:text-gray-300">颜色:</label>
+                    <input type="color" id="colorPicker" value="#000000" class="w-10 h-10 p-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-md cursor-pointer">
+                </div>
+                
+                <!-- 笔刷大小滑块 -->
+                <div class="flex items-center gap-2">
+                    <label for="brushSize" class="text-sm font-medium text-gray-600 dark:text-gray-300">大小:</label>
+                    <input type="range" id="brushSize" min="1" max="100" value="10" class="w-24 sm:w-32 cursor-pointer">
+                    <span id="brushSizeValue" class="text-sm text-gray-700 dark:text-gray-200 w-6 text-center">10</span>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="flex items-center gap-2">
+                 <button id="eraserBtn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white dark:text-gray-200 dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-md hover:bg-gray-100 dark:hover:bg-gray-500 transition-colors">
+                    橡皮擦
+                </button>
+                <button id="clearBtn" class="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors">
+                    清空画布
+                </button>
+            </div>
+        </div>
+        
+        <!-- 画布将在此处 -->
+        <div class="flex-grow relative">
+            <canvas id="drawingCanvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // 等待DOM加载完成
+        window.addEventListener('load', () => {
+            const canvas = document.getElementById('drawingCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 获取控件元素
+            const colorPicker = document.getElementById('colorPicker');
+            const brushSizeSlider = document.getElementById('brushSize');
+            const brushSizeValue = document.getElementById('brushSizeValue');
+            const clearBtn = document.getElementById('clearBtn');
+            const eraserBtn = document.getElementById('eraserBtn');
+            const canvasContainer = document.querySelector('.flex-grow');
+
+            let isDrawing = false;
+            let isErasing = false;
+            let lastX = 0;
+            let lastY = 0;
+            let lastColor = colorPicker.value;
+
+            // 根据容器大小设置画布尺寸
+            function resizeCanvas() {
+                const rect = canvasContainer.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                // 重置绘图状态，因为调整大小会清除画布
+                ctx.lineJoin = 'round';
+                ctx.lineCap = 'round';
+                ctx.lineWidth = brushSizeSlider.value;
+                ctx.strokeStyle = isErasing ? '#FFFFFF' : colorPicker.value;
+            }
+
+            // 初始化画布尺寸并在窗口大小改变时重新调整
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            // 绘图函数
+            function draw(e) {
+                if (!isDrawing) return;
+                
+                const { x, y } = getMousePos(canvas, e);
+
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                
+                [lastX, lastY] = [x, y];
+            }
+            
+            // 获取鼠标或触摸在画布上的位置
+            function getMousePos(canvas, evt) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+
+                if (evt.touches && evt.touches.length > 0) {
+                     return {
+                        x: (evt.touches[0].clientX - rect.left) * scaleX,
+                        y: (evt.touches[0].clientY - rect.top) * scaleY
+                    };
+                }
+                return {
+                    x: (evt.clientX - rect.left) * scaleX,
+                    y: (evt.clientY - rect.top) * scaleY
+                };
+            }
+
+            function startDrawing(e) {
+                isDrawing = true;
+                const { x, y } = getMousePos(canvas, e);
+                [lastX, lastY] = [x, y];
+            }
+
+            function stopDrawing() {
+                isDrawing = false;
+            }
+
+            // 事件监听器
+            // 鼠标事件
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing); // 鼠标移出画布时停止绘制
+
+            // 触摸事件
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // 防止页面滚动
+                startDrawing(e);
+            });
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                draw(e);
+            });
+            canvas.addEventListener('touchend', stopDrawing);
+            canvas.addEventListener('touchcancel', stopDrawing);
+
+            // 更新笔刷大小
+            brushSizeSlider.addEventListener('input', (e) => {
+                ctx.lineWidth = e.target.value;
+                brushSizeValue.textContent = e.target.value;
+            });
+
+            // 更新颜色
+            colorPicker.addEventListener('change', (e) => {
+                isErasing = false;
+                ctx.strokeStyle = e.target.value;
+                lastColor = e.target.value;
+                eraserBtn.classList.remove('bg-blue-200', 'dark:bg-blue-800');
+            });
+
+            // 清空画布
+            clearBtn.addEventListener('click', () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            });
+
+            // 橡皮擦功能
+            eraserBtn.addEventListener('click', () => {
+                isErasing = !isErasing;
+                if(isErasing) {
+                    lastColor = colorPicker.value; // 保存当前颜色
+                    ctx.strokeStyle = '#FFFFFF'; // 使用白色作为橡皮擦
+                    eraserBtn.classList.add('bg-blue-200', 'dark:bg-blue-800');
+                } else {
+                    ctx.strokeStyle = lastColor;
+                    colorPicker.value = lastColor;
+                    eraserBtn.classList.remove('bg-blue-200', 'dark:bg-blue-800');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
