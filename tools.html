@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实用工具箱</title>
+    <!-- 引入Tailwind CSS框架 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入QR Code生成库 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <!-- 引入QR Code解码库 -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <!-- 引入SQL格式化库 -->
+    <script src="https://unpkg.com/sql-formatter@latest/dist/sql-formatter.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* 自定义样式 */
+        body {
+            font-family: 'Inter', 'Helvetica Neue', 'Arial', 'sans-serif';
+            background-color: #f3f4f6;
+        }
+        .tool-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            padding: 2rem;
+            min-height: 520px;
+            display: none;
+        }
+        .tool-card.active {
+            display: flex;
+            flex-direction: column;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background-color: #2d3748; color: white; padding: 10px 20px;
+            border-radius: 8px; z-index: 1050;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s, bottom 0.3s;
+        }
+        .toast.show { opacity: 1; visibility: visible; bottom: 30px; }
+        
+        /* 侧边栏菜单样式 */
+        #sidebar {
+            position: fixed; top: 0; left: 0; width: 280px; height: 100%;
+            background-color: white; box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            transform: translateX(-100%); transition: transform 0.3s ease-in-out;
+            z-index: 1010; overflow-y: auto;
+        }
+        #sidebar.open { transform: translateX(0); }
+        #sidebar-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5); opacity: 0; visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s; z-index: 1000;
+        }
+        #sidebar-overlay.open { opacity: 1; visibility: visible; }
+        .menu-item-btn {
+            display: block; width: 100%; text-align: left; padding: 12px 24px;
+            color: #374151; font-weight: 500; border-left: 4px solid transparent;
+            transition: all 0.2s;
+        }
+        .menu-item-btn:hover { background-color: #f3f4f6; }
+        .menu-item-btn.active {
+            color: #3b82f6; background-color: #eff6ff; border-left-color: #3b82f6;
+        }
+        
+        /* 画板样式 */
+        #drawing-pad { padding: 0; }
+        #drawingCanvas { display: block; width: 100%; height: 100%; touch-action: none; }
+        
+        /* 其他工具自定义样式 */
+        .custom-file-input::-webkit-file-upload-button { visibility: hidden; }
+        .custom-file-input::before {
+            content: '选择图片'; display: inline-block; background: #3b82f6; color: white;
+            border-radius: 0.375rem; padding: 0.625rem 1.25rem; outline: none; white-space: nowrap;
+            -webkit-user-select: none; cursor: pointer; font-weight: 500; transition: background-color 0.2s;
+        }
+        .upload-label {
+            display: inline-block; padding: 12px 25px; background-color: #3b82f6; color: #fff;
+            border-radius: 8px; cursor: pointer; transition: background-color 0.3s, transform 0.2s;
+            font-weight: bold; font-size: 1rem;
+        }
+        .upload-label:hover { background-color: #2563eb; transform: translateY(-2px); }
+    </style>
+</head>
+<body class="antialiased">
+    <!-- 侧边栏菜单 -->
+    <aside id="sidebar">
+        <div class="p-4 border-b">
+            <h2 class="text-xl font-bold text-gray-800">所有工具</h2>
+        </div>
+        <nav class="py-2">
+            <button class="menu-item-btn active" data-tab="drawing-pad">绘图板</button>
+            <button class="menu-item-btn" data-tab="text-analyzer">文本分析</button>
+            <button class="menu-item-btn" data-tab="json-formatter">JSON工具</button>
+            <button class="menu-item-btn" data-tab="sql-formatter">SQL格式化</button>
+            <button class="menu-item-btn" data-tab="html-inspector">HTML检测</button>
+            <button class="menu-item-btn" data-tab="qr-generator">二维码生成</button>
+            <button class="menu-item-btn" data-tab="qr-decoder">二维码解码</button>
+            <button class="menu-item-btn" data-tab="base64-converter">Base64</button>
+            <button class="menu-item-btn" data-tab="url-encoder">URL编码</button>
+            <button class="menu-item-btn" data-tab="color-converter">颜色转换</button>
+            <button class="menu-item-btn" data-tab="timestamp-converter">时间戳</button>
+            <button class="menu-item-btn" data-tab="password-generator">密码生成</button>
+            <button class="menu-item-btn" data-tab="webp-converter">图片转 WebP</button>
+            <button class="menu-item-btn" data-tab="json-extractor">JSON 提取</button>
+            <button class="menu-item-btn" data-tab="svg-renderer">SVG 渲染器</button>
+        </nav>
+    </aside>
+    <div id="sidebar-overlay"></div>
+
+    <div class="min-h-screen p-4 sm:p-6 md:p-8">
+        <div class="max-w-4xl mx-auto">
+            
+            <header class="text-center mb-8 relative">
+                <button id="menu-toggle-btn" class="absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-gray-200 transition-colors">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">实用工具箱</h1>
+                <p class="text-gray-500 mt-2">一个简洁高效的网页版多功能工具集</p>
+            </header>
+
+            <main>
+                <section id="drawing-pad" class="tool-card active fade-in">
+                    <div class="w-full h-full bg-white flex flex-col overflow-hidden">
+                        <div class="controls p-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
+                            <div class="flex items-center gap-2 sm:gap-4 flex-wrap">
+                                <div class="flex items-center gap-2"><label for="drawColorPicker" class="text-sm font-medium text-gray-600">颜色:</label><input type="color" id="drawColorPicker" value="#000000" class="w-8 h-8 p-0.5 bg-white border-gray-300 rounded-md cursor-pointer"></div>
+                                <div class="flex items-center gap-2"><label for="brushSize" class="text-sm font-medium text-gray-600">大小:</label><input type="range" id="brushSize" min="1" max="100" value="10" class="w-24 cursor-pointer"><span id="brushSizeValue" class="text-sm text-gray-700 w-6 text-center">10</span></div>
+                            </div>
+                            <div class="flex items-center gap-2"><button id="eraserBtn" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 transition-colors">橡皮擦</button><button id="clearBtn" class="px-3 py-1.5 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors">清空</button></div>
+                        </div>
+                        <div class="flex-grow relative" id="canvas-parent"><canvas id="drawingCanvas"></canvas></div>
+                    </div>
+                </section>
+                <section id="text-analyzer" class="tool-card">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-4">文本分析器</h2>
+                    <textarea id="textInput" class="w-full h-64 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition" placeholder="在此处输入或粘贴文本..."></textarea>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 text-center">
+                        <div class="bg-gray-100 p-3 rounded-lg"><p class="text-sm text-gray-500">字数</p><p id="charCount" class="text-2xl font-bold text-gray-800">0</p></div>
+                        <div class="bg-gray-100 p-3 rounded-lg"><p class="text-sm text-gray-500">词数</p><p id="wordCount" class="text-2xl font-bold text-gray-800">0</p></div>
+                        <div class="bg-gray-100 p-3 rounded-lg"><p class="text-sm text-gray-500">行数</p><p id="lineCount" class="text-2xl font-bold text-gray-800">0</p></div>
+                        <div class="bg-gray-100 p-3 rounded-lg"><p class="text-sm text-gray-500">句子</p><p id="sentenceCount" class="text-2xl font-bold text-gray-800">0</p></div>
+                    </div>
+                </section>
+                <section id="json-formatter" class="tool-card">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-4">JSON 格式化 / 校验器</h2>
+                    <p id="jsonStatus" class="mb-2 text-sm text-green-600 font-medium h-5"></p>
+                    <textarea id="jsonInput" class="w-full flex-grow p-3 font-mono text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition" placeholder="粘贴您的 JSON 代码..."></textarea>
+                    <div class="flex items-center gap-2 mt-4 flex-wrap">
+                        <button id="jsonFormatBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">格式化</button>
+                        <button id="jsonMinifyBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">压缩</button>
+                        <button id="jsonCopyBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg ml-auto">复制</button>
+                        <button id="jsonClearBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">清空</button>
+                    </div>
+                </section>
+                <section id="sql-formatter" class="tool-card">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-4">SQL 格式化器</h2>
+                    <textarea id="sqlInput" class="w-full h-64 p-3 font-mono text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition" placeholder="粘贴您的 SQL 代码..."></textarea>
+                    <div class="flex items-center gap-4 mt-4">
+                        <label for="sqlDialect" class="text-sm font-medium">SQL方言:</label>
+                        <select id="sqlDialect" class="p-2 border border-gray-300 rounded-lg"><option value="sql">标准SQL</option><option value="mysql">MySQL</option><option value="postgresql">PostgreSQL</option><option value="plsql">Oracle</option><option value="tsql">Transact-SQL</option></select>
+                        <button id="sqlFormatBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg ml-auto">格式化</button>
+                    </div>
+                </section>
+                <section id="html-inspector" class="tool-card">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-4">HTML 检测工具</h2>
+                    <textarea id="htmlInput" class="w-full flex-grow p-3 font-mono text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition" placeholder="粘贴您的 HTML 代码..."></textarea>
+                    <button id="htmlInspectBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg mt-4 self-start">开始检测</button>
+                    <h3 class="text-lg font-semibold mt-4 mb-2">检测结果:</h3>
+                    <pre id="htmlResult" class="w-full p-3 bg-gray-100 rounded-lg text-sm whitespace-pre-wrap"></pre>
+                </section>
+                <section id="qr-generator" class="tool-card items-center">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-4">二维码生成器</h2>
+                    <div id="qrcode" class="p-3 bg-white border rounded-lg w-48 h-48 flex items-center justify-center"></div>
+                    <input type="text" id="qrInput" class="mt-4 w-full max-w-sm p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="输入文本或网址" value="欢迎使用!">
+                    <div class="flex gap-2 mt-4"><button id="generateQrBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">生成</button><button id="downloadQrBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">下载</button></div>
+                </section>
+                <section id="qr-decoder" class="tool-card">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-4">二维码解码器</h2>
+                    <input type="file" id="qrFileInput" class="custom-file-input" accept="image/*">
+                    <canvas id="qrCanvas" class="hidden"></canvas>
+                    <textarea id="qrDecodeOutput" readonly class="w-full h-32 p-3 mt-4 bg-gray-100 border border-gray-300 rounded-lg" placeholder="解码结果将显示在此处..."></textarea>
+                </section>
+                <section id="base64-converter" class="tool-card">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-4">Base64 编码/解码</h2>
+                    <textarea id="base64Input" class="w-full flex-grow p-3 border rounded-lg" placeholder="原始文本"></textarea>
+                    <div class="flex justify-center gap-4 my-2"><button id="base64EncodeBtn" class="p-2 bg-blue-500 text-white rounded-lg">→</button><button id="base64DecodeBtn" class="p-2 bg-blue-500 text-white rounded-lg">←</button></div>
+                    <textarea id="base64Output" class="w-full flex-grow p-3 border rounded-lg" placeholder="Base64 编码"></textarea>
+                </section>
+                <section id="url-encoder" class="tool-card">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-4">URL 编码/解码</h2>
+                    <textarea id="urlInput" class="w-full flex-grow p-3 border rounded-lg" placeholder="原始 URL"></textarea>
+                    <div class="flex justify-center gap-4 my-2"><button id="urlEncodeBtn" class="p-2 bg-blue-500 text-white rounded-lg">→</button><button id="urlDecodeBtn" class="p-2 bg-blue-500 text-white rounded-lg">←</button></div>
+                    <textarea id="urlOutput" class="w-full flex-grow p-3 border rounded-lg" placeholder="编码后的 URL"></textarea>
+                </section>
+                <section id="color-converter" class="tool-card items-center">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-4">颜色转换器</h2>
+                    <div id="colorPreview" class="w-32 h-32 rounded-full border-4 border-white shadow-lg mb-4"></div>
+                    <input type="color" id="colorPicker" value="#3b82f6" class="w-full h-12 p-1 bg-white border-gray-300 rounded-md cursor-pointer mb-4">
+                    <div class="w-full max-w-sm space-y-2"><input id="colorHex" class="w-full p-2 border rounded-lg" placeholder="HEX"><input id="colorRgb" class="w-full p-2 border rounded-lg" placeholder="RGB"></div>
+                </section>
+                <section id="timestamp-converter" class="tool-card">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-4">时间戳转换器</h2>
+                    <div class="space-y-4">
+                        <div><label for="timestampInput" class="block text-sm font-medium text-gray-700">Unix 时间戳 (秒)</label><input type="number" id="timestampInput" class="w-full p-2 mt-1 border rounded-lg"></div>
+                        <div class="flex items-center justify-center gap-2"><button id="tsToDateBtn" class="p-2 bg-blue-500 text-white rounded-lg">↓</button><button id="setCurrentTimeBtn" class="p-2 bg-gray-500 text-white rounded-lg">现在</button><button id="dateToTsBtn" class="p-2 bg-blue-500 text-white rounded-lg">↑</button></div>
+                        <div><label for="dateInput" class="block text-sm font-medium text-gray-700">标准日期时间</label><input type="text" id="dateInput" class="w-full p-2 mt-1 border rounded-lg" placeholder="YYYY-MM-DD HH:MM:SS"></div>
+                    </div>
+                </section>
+                <section id="password-generator" class="tool-card">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-4">密码生成器</h2>
+                    <div class="relative mb-4">
+                        <input type="text" id="passwordOutput" readonly class="w-full p-3 pr-12 text-lg bg-gray-100 border-2 border-gray-200 rounded-lg">
+                        <button id="copyPasswordBtn" class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-blue-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></button>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between"><label for="passwordLength">密码长度:</label><div class="flex items-center gap-2"><input type="range" id="passwordLength" min="8" max="32" value="16" class="w-48"><span id="lengthValue" class="font-bold">16</span></div></div>
+                        <div class="flex items-center"><input type="checkbox" id="includeUppercase" class="h-4 w-4 rounded" checked><label for="includeUppercase" class="ml-2">包含大写字母 (A-Z)</label></div>
+                        <div class="flex items-center"><input type="checkbox" id="includeLowercase" class="h-4 w-4 rounded" checked><label for="includeLowercase" class="ml-2">包含小写字母 (a-z)</label></div>
+                        <div class="flex items-center"><input type="checkbox" id="includeNumbers" class="h-4 w-4 rounded" checked><label for="includeNumbers" class="ml-2">包含数字 (0-9)</label></div>
+                        <div class="flex items-center"><input type="checkbox" id="includeSymbols" class="h-4 w-4 rounded"><label for="includeSymbols" class="ml-2">包含符号 (!@#...)</label></div>
+                        <div><label for="requiredWord" class="block text-sm">提示词 (可选):</label><input type="text" id="requiredWord" class="w-full p-2 mt-1 border rounded-lg" placeholder="包含指定单词"></div>
+                    </div>
+                    <button id="generatePasswordBtn" class="w-full mt-6 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg text-lg">生成新密码</button>
+                </section>
+
+                <!-- 新增工具 -->
+                <section id="webp-converter" class="tool-card items-center">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-2">图片转 WebP 转换器</h2>
+                    <p class="text-gray-500 mb-6">选择图片将自动转换为 WebP 格式。</p>
+                    <input type="file" id="webpImageInput" accept="image/*" class="hidden">
+                    <label for="webpImageInput" class="upload-label">选择图片</label>
+                    <div class="my-4">
+                        <label for="webpQuality" class="text-sm font-medium text-gray-700">WebP 质量 (1-100):</label>
+                        <input type="number" id="webpQuality" value="85" min="1" max="100" class="w-24 p-2 border border-gray-300 rounded-lg text-center">
+                    </div>
+                    <div id="webpStatus" class="my-4 font-medium min-h-[24px]"></div>
+                    <img id="webpPreview" class="max-w-full max-h-64 my-4 rounded-lg shadow-md" style="display: none;">
+                    <a id="webpDownloadLink" href="#" download class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-5 rounded-lg" style="display: none;">下载 WebP 图片</a>
+                </section>
+                
+                <section id="json-extractor" class="tool-card">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-2">JSON 提取工具</h2>
+                    <p class="text-gray-500 mb-4">从特定格式中提取键和坐标。</p>
+                    <textarea id="jsonExtractInput" class="w-full h-48 p-3 font-mono text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition" placeholder="在此处粘贴您的数据..."></textarea>
+                    <button id="jsonExtractProcessBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg my-4 self-center">转换数据</button>
+                    <div class="bg-gray-100 border border-gray-200 rounded-lg p-3 flex-grow">
+                        <label class="font-bold text-gray-600 block mb-2">转换后数据：</label>
+                        <pre id="jsonExtractOutput" class="whitespace-pre-wrap break-words text-sm">等待输入...</pre>
+                    </div>
+                </section>
+
+                <section id="svg-renderer" class="tool-card items-center">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-2">SVG 渲染器</h2>
+                    <p class="text-gray-500 mb-4">粘贴 SVG 代码以显示和下载。</p>
+                    <textarea id="svgInput" class="w-full p-3 font-mono text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition" placeholder="在此粘贴 SVG 代码..."></textarea>
+                    <div id="svgIconContainer" class="w-48 h-48 my-4 p-4 bg-gray-100 border rounded-lg flex justify-center items-center text-gray-500 text-center">
+                        渲染后的 SVG 将显示在此处。
+                    </div>
+                    <div class="flex gap-4">
+                        <button id="svgRenderButton" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">🎨 渲染 SVG</button>
+                        <button id="svgDownloadButton" disabled class="disabled:bg-gray-300 disabled:cursor-not-allowed bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">⬇️ 下载 SVG</button>
+                    </div>
+                    <div id="svgStatusBox" class="w-full mt-4 p-3 bg-gray-100 rounded-lg text-sm text-center min-h-[40px]">状态消息将显示在此处。</div>
+                </section>
+            </main>
+        </div>
+    </div>
+    
+    <div id="toast-notification" class="toast"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- 全局和导航功能 ---
+            const { format } = window.sqlFormatter;
+            const toolCards = document.querySelectorAll('.tool-card');
+            const toastElement = document.getElementById('toast-notification');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const menuToggleBtn = document.getElementById('menu-toggle-btn');
+            const menuItems = document.querySelectorAll('.menu-item-btn');
+            let toastTimeout;
+            function showToast(message) { toastElement.textContent = message; toastElement.classList.add('show'); clearTimeout(toastTimeout); toastTimeout = setTimeout(() => toastElement.classList.remove('show'), 2000); }
+            function toggleMenu() { sidebar.classList.toggle('open'); overlay.classList.toggle('open'); }
+            function switchTab(targetTabId) { toolCards.forEach(card => card.classList.remove('active', 'fade-in')); const activeCard = document.getElementById(targetTabId); if (activeCard) { activeCard.classList.add('active'); setTimeout(() => activeCard.classList.add('fade-in'), 10); } menuItems.forEach(item => item.classList.toggle('active', item.dataset.tab === targetTabId)); }
+            menuToggleBtn.addEventListener('click', toggleMenu);
+            overlay.addEventListener('click', toggleMenu);
+            menuItems.forEach(item => { item.addEventListener('click', () => { switchTab(item.dataset.tab); toggleMenu(); }); });
+
+            // --- 所有工具的功能函数 ---
+
+            function setupAllTools() {
+                // 1. 绘图板
+                const canvas = document.getElementById('drawingCanvas');
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    const colorPicker = document.getElementById('drawColorPicker');
+                    const brushSizeSlider = document.getElementById('brushSize');
+                    const brushSizeValue = document.getElementById('brushSizeValue');
+                    const clearBtn = document.getElementById('clearBtn');
+                    const eraserBtn = document.getElementById('eraserBtn');
+                    const canvasParent = document.getElementById('canvas-parent');
+                    let isDrawing = false, isErasing = false, lastX = 0, lastY = 0, lastColor = colorPicker.value;
+                    const resizeCanvas = () => { const rect = canvasParent.getBoundingClientRect(); if (canvas.width !== rect.width || canvas.height !== rect.height) { canvas.width = rect.width; canvas.height = rect.height; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.lineWidth = brushSizeSlider.value; ctx.strokeStyle = isErasing ? '#FFFFFF' : colorPicker.value; } };
+                    new ResizeObserver(resizeCanvas).observe(canvasParent);
+                    const getEventPos = evt => { const rect = canvas.getBoundingClientRect(), scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height; const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX, clientY = evt.touches ? evt.touches[0].clientY : evt.clientY; return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY }; };
+                    const startDrawing = e => { isDrawing = true; const pos = getEventPos(e); [lastX, lastY] = [pos.x, pos.y]; };
+                    const draw = e => { if (!isDrawing) return; const pos = getEventPos(e); ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(pos.x, pos.y); ctx.stroke();[lastX, lastY] = [pos.x, pos.y]; };
+                    const stopDrawing = () => isDrawing = false;
+                    canvas.addEventListener('mousedown', startDrawing); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stopDrawing); canvas.addEventListener('mouseout', stopDrawing);
+                    canvas.addEventListener('touchstart', e => { e.preventDefault(); startDrawing(e); }); canvas.addEventListener('touchmove', e => { e.preventDefault(); draw(e); }); canvas.addEventListener('touchend', stopDrawing);
+                    brushSizeSlider.addEventListener('input', e => { ctx.lineWidth = e.target.value; brushSizeValue.textContent = e.target.value; });
+                    colorPicker.addEventListener('change', e => { isErasing = false; ctx.strokeStyle = e.target.value; lastColor = e.target.value; eraserBtn.classList.remove('bg-blue-200'); });
+                    clearBtn.addEventListener('click', () => ctx.clearRect(0, 0, canvas.width, canvas.height));
+                    eraserBtn.addEventListener('click', () => { isErasing = !isErasing; eraserBtn.classList.toggle('bg-blue-200'); if (isErasing) { lastColor = ctx.strokeStyle; ctx.strokeStyle = '#FFFFFF'; } else { ctx.strokeStyle = lastColor; } });
+                }
+
+                // 2. 文本分析器
+                document.getElementById('textInput')?.addEventListener('input', e => { const t = e.target.value; document.getElementById('charCount').textContent = t.length; document.getElementById('wordCount').textContent = (t.match(/\b\w+\b/g) || []).length; document.getElementById('lineCount').textContent = t.length === 0 ? 0 : (t.split('\n').length); document.getElementById('sentenceCount').textContent = (t.match(/[^.!?]+[.!?]+/g) || []).length; });
+                
+                // 3. JSON 格式化
+                const jsonInput = document.getElementById('jsonInput'), jsonStatus = document.getElementById('jsonStatus');
+                document.getElementById('jsonFormatBtn')?.addEventListener('click', () => { try { jsonInput.value = JSON.stringify(JSON.parse(jsonInput.value), null, 4); jsonStatus.textContent = 'JSON格式正确 ✔'; jsonStatus.classList.replace('text-red-600', 'text-green-600'); } catch (e) { jsonStatus.textContent = 'JSON格式错误'; jsonStatus.classList.replace('text-green-600', 'text-red-600'); } });
+                document.getElementById('jsonMinifyBtn')?.addEventListener('click', () => { try { jsonInput.value = JSON.stringify(JSON.parse(jsonInput.value)); jsonStatus.textContent = 'JSON格式正确 ✔'; jsonStatus.classList.replace('text-red-600', 'text-green-600'); } catch (e) { jsonStatus.textContent = 'JSON格式错误'; jsonStatus.classList.replace('text-green-600', 'text-red-600'); } });
+                document.getElementById('jsonCopyBtn')?.addEventListener('click', () => jsonInput.value && navigator.clipboard.writeText(jsonInput.value).then(() => showToast("已复制")));
+                document.getElementById('jsonClearBtn')?.addEventListener('click', () => { jsonInput.value = ''; jsonStatus.textContent = ''; });
+
+                // 4. SQL 格式化
+                document.getElementById('sqlFormatBtn')?.addEventListener('click', () => { const el = document.getElementById('sqlInput'); try { el.value = format(el.value, { language: document.getElementById('sqlDialect').value }); } catch (e) { showToast("SQL 格式化失败"); } });
+
+                // 5. HTML 检测
+                document.getElementById('htmlInspectBtn')?.addEventListener('click', () => { const html = document.getElementById('htmlInput').value, resultEl = document.getElementById('htmlResult'); let results = []; (html.match(/<img[^>]*>/g) || []).forEach(t => { if (!/alt=/i.test(t)) results.push(`警告: 发现<img>标签缺少 "alt" 属性.`); }); ['div', 'p', 'span'].forEach(t => { const open = (html.match(new RegExp(`<${t}[\\s>]`, 'g')) || []).length, close = (html.match(new RegExp(`</${t}>`, 'g')) || []).length; if (open > close) results.push(`错误: 检测到 ${open - close} 个未闭合的 <${t}> 标签`); }); resultEl.textContent = results.length ? results.join('\n') : '未发现明显问题。'; });
+
+                // 6. 二维码生成
+                const qrcodeEl = document.getElementById('qrcode');
+                if (qrcodeEl) {
+                    const qrcodeInstance = new QRCode(qrcodeEl, { width: 176, height: 176, correctLevel: QRCode.CorrectLevel.H });
+                    const makeCode = () => { const text = document.getElementById('qrInput').value.trim(); if (text) qrcodeInstance.makeCode(text); else showToast("请输入内容"); };
+                    document.getElementById('generateQrBtn').addEventListener('click', makeCode);
+                    document.getElementById('downloadQrBtn').addEventListener('click', () => { const img = qrcodeEl.querySelector('img'); if(img) { const a = document.createElement('a'); a.href = img.src; a.download = `qrcode.png`; a.click(); } else showToast("请先生成二维码"); });
+                    makeCode("欢迎使用!");
+                }
+
+                // 7. 二维码解码
+                document.getElementById('qrFileInput')?.addEventListener('change', e => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = e => { const img = new Image(); img.onload = () => { const canvas = document.getElementById('qrCanvas'); canvas.width = img.width; canvas.height = img.height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0); const code = jsQR(ctx.getImageData(0, 0, img.width, img.height).data, img.width, img.height); document.getElementById('qrDecodeOutput').value = code ? code.data : ''; showToast(code ? "解码成功！" : "未识别到二维码"); }; img.src = e.target.result; }; reader.readAsDataURL(file); });
+
+                // 8. Base64
+                document.getElementById('base64EncodeBtn')?.addEventListener('click', () => { try { document.getElementById('base64Output').value = btoa(unescape(encodeURIComponent(document.getElementById('base64Input').value))); } catch (e) { showToast("编码失败"); } });
+                document.getElementById('base64DecodeBtn')?.addEventListener('click', () => { try { document.getElementById('base64Input').value = decodeURIComponent(escape(atob(document.getElementById('base64Output').value))); } catch (e) { showToast("解码失败"); } });
+                
+                // 9. URL 编码
+                document.getElementById('urlEncodeBtn')?.addEventListener('click', () => document.getElementById('urlOutput').value = encodeURIComponent(document.getElementById('urlInput').value));
+                document.getElementById('urlDecodeBtn')?.addEventListener('click', () => { try { document.getElementById('urlInput').value = decodeURIComponent(document.getElementById('urlOutput').value); } catch (e) { showToast("解码失败"); } });
+                
+                // 10. 颜色转换
+                const colorPicker = document.getElementById('colorPicker');
+                if(colorPicker) {
+                    const updateColors = hex => { document.getElementById('colorPreview').style.backgroundColor = hex; document.getElementById('colorHex').value = hex; const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16); document.getElementById('colorRgb').value = `rgb(${r}, ${g}, ${b})`; }; colorPicker.addEventListener('input', e => updateColors(e.target.value)); updateColors('#3b82f6');
+                }
+
+                // 11. 时间戳
+                const tsInput = document.getElementById('timestampInput'), dateInput = document.getElementById('dateInput');
+                if (tsInput) {
+                    const updateTime = ts => { const d = new Date(ts * 1000); const pad = n => String(n).padStart(2, '0'); tsInput.value = ts; dateInput.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
+                    document.getElementById('tsToDateBtn').addEventListener('click', () => updateTime(parseInt(tsInput.value)));
+                    document.getElementById('dateToTsBtn').addEventListener('click', () => updateTime(Math.floor(new Date(dateInput.value.replace(/-/g, '/')).getTime() / 1000)));
+                    document.getElementById('setCurrentTimeBtn').addEventListener('click', () => updateTime(Math.floor(Date.now() / 1000)));
+                    updateTime(Math.floor(Date.now() / 1000));
+                }
+
+                // 12. 密码生成器
+                const passwordOutput = document.getElementById('passwordOutput'), passwordLength = document.getElementById('passwordLength'), lengthValue = document.getElementById('lengthValue');
+                if (passwordOutput) {
+                    const charSets = { upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', lower: 'abcdefghijklmnopqrstuvwxyz', num: '0123456789', sym: '!@#$%^&*()_+-=[]{}|;:,.<>?' };
+                    const generatePassword = () => { let pool = (document.getElementById('includeUppercase').checked ? charSets.upper : '') + (document.getElementById('includeLowercase').checked ? charSets.lower : '') + (document.getElementById('includeNumbers').checked ? charSets.num : '') + (document.getElementById('includeSymbols').checked ? charSets.sym : ''); if (!pool) { showToast("请选择字符类型"); return; } const requiredWord = document.getElementById('requiredWord').value, length = parseInt(passwordLength.value, 10); if (requiredWord.length >= length) { showToast("提示词过长"); return; } let randomPart = Array(length - requiredWord.length).fill(null).map(() => pool.charAt(Math.floor(Math.random() * pool.length))).join(''); const idx = Math.floor(Math.random() * (randomPart.length + 1)); passwordOutput.value = randomPart.slice(0, idx) + requiredWord + randomPart.slice(idx); };
+                    lengthValue.textContent = passwordLength.value; passwordLength.addEventListener('input', e => lengthValue.textContent = e.target.value);
+                    document.getElementById('generatePasswordBtn').addEventListener('click', generatePassword);
+                    document.getElementById('copyPasswordBtn').addEventListener('click', () => passwordOutput.value && navigator.clipboard.writeText(passwordOutput.value).then(() => showToast("密码已复制")));
+                    generatePassword();
+                }
+
+                // 13. WebP 转换器
+                const webpImageInput = document.getElementById('webpImageInput');
+                if (webpImageInput) {
+                    const statusDiv = document.getElementById('webpStatus'), downloadLink = document.getElementById('webpDownloadLink'), previewImage = document.getElementById('webpPreview'), qualityInput = document.getElementById('webpQuality');
+                    const handleImageConversion = (event) => { const file = event.target.files[0]; if (!file) return; statusDiv.textContent = '正在转换...'; downloadLink.style.display = 'none'; previewImage.style.display = 'none'; const reader = new FileReader(); reader.onload = function(e) { const img = new Image(); img.onload = function() { const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0); const quality = parseFloat(qualityInput.value) / 100 || 0.85; try { const webpDataUrl = canvas.toDataURL('image/webp', quality); previewImage.src = webpDataUrl; previewImage.style.display = 'block'; downloadLink.href = webpDataUrl; const fileName = file.name.split('.').slice(0, -1).join('.'); downloadLink.download = `${fileName || 'converted'}.webp`; downloadLink.style.display = 'inline-block'; statusDiv.textContent = '转换完成！'; } catch (error) { statusDiv.textContent = '转换失败，浏览器可能不支持。'; console.error('WebP conversion failed:', error); } }; img.src = e.target.result; }; reader.readAsDataURL(file); };
+                    webpImageInput.addEventListener('change', handleImageConversion);
+                    qualityInput.addEventListener('change', () => { if (webpImageInput.files[0]) { webpImageInput.dispatchEvent(new Event('change')); } });
+                }
+
+                // 14. JSON 提取工具
+                const jsonExtractProcessBtn = document.getElementById('jsonExtractProcessBtn');
+                if (jsonExtractProcessBtn) {
+                    const inputDataElement = document.getElementById('jsonExtractInput'), outputDataElement = document.getElementById('jsonExtractOutput');
+                    const processAndTransform = (rawData) => { let cleanedData = rawData.replace(/\u00A0/g, ' ').trim(); if (!cleanedData) return "请输入数据。"; const keyArrayRegex = /"([^"]+)":\s*\[([\s\S]*?)\]\s*[,]?\s*$/; const match = cleanedData.match(keyArrayRegex); if (!match) throw new Error("无效的数据格式。"); const key = match[1], arrayContent = match[2]; const coordinateRegex = /\[\s*([0-9.-]+),\s*([0-9.-]+)/g; let coordinates = [], result; while ((result = coordinateRegex.exec(arrayContent)) !== null) { coordinates.push({ "x": parseFloat(result[1]), "y": parseFloat(result[2]) }); } if (coordinates.length === 0) throw new Error("未找到有效坐标。"); return `"${key}": [\n${coordinates.map(item => `  ${JSON.stringify(item)}`).join(",\n")}\n]`; };
+                    jsonExtractProcessBtn.addEventListener('click', () => { try { outputDataElement.textContent = processAndTransform(inputDataElement.value); outputDataElement.style.color = '#333'; } catch (e) { outputDataElement.textContent = e.message; outputDataElement.style.color = '#e53e3e'; } });
+                }
+
+                // 15. SVG 渲染器
+                const svgRenderButton = document.getElementById('svgRenderButton');
+                if (svgRenderButton) {
+                    const svgInput = document.getElementById('svgInput'), downloadButton = document.getElementById('svgDownloadButton'), iconContainer = document.getElementById('svgIconContainer'), statusBox = document.getElementById('svgStatusBox');
+                    svgRenderButton.addEventListener('click', () => { const svgCode = svgInput.value; if (!svgCode.trim()) { statusBox.textContent = '请输入 SVG 代码！'; return; } if (svgCode.startsWith('<svg') && svgCode.endsWith('</svg>')) { iconContainer.innerHTML = svgCode; statusBox.textContent = 'SVG 已成功渲染！'; downloadButton.disabled = false; } else { statusBox.textContent = '无效的 SVG 代码。'; iconContainer.innerHTML = '<span class="text-gray-500">渲染失败。</span>'; downloadButton.disabled = true; } });
+                    downloadButton.addEventListener('click', () => { const svgElement = iconContainer.querySelector('svg'); if (svgElement) { const blob = new Blob([svgElement.outerHTML], { type: 'image/svg+xml' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'rendered_icon.svg'; a.click(); URL.revokeObjectURL(url); } else { statusBox.textContent = '没有可下载的 SVG。'; } });
+                }
+            }
+
+            // --- 初始化所有工具 ---
+            setupAllTools();
+        });
+    </script>
+</body>
+</html>
+
